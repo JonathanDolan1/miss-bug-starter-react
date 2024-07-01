@@ -1,69 +1,64 @@
+import { utilService } from "./util.service.js"
+import fs from 'fs'
 
-import { storageService } from './async-storage.service.js'
-import { utilService } from './util.service.js'
-
-const STORAGE_KEY = 'bugDB'
-
-_createBugs()
+const bugs = utilService.readJsonFile('data/bug.json')
 
 export const bugService = {
     query,
     getById,
-    save,
     remove,
+    save
 }
 
-
-function query() {
-    return storageService.query(STORAGE_KEY)
+function query(filterBy = {}) {
+    return Promise.resolve(bugs)
+        .then(bugs => {
+            // if (filterBy.txt) {
+            //     const regExp = new RegExp(filterBy.txt, 'i')
+            //     bugs = bugs.filter(bug => regExp.test(bug.vendor))
+            // }
+            // if (filterBy.minSpeed) {
+            //     bugs = bugs.filter(bug => bug.speed >= filterBy.minSpeed)
+            // }
+            return bugs
+        })
 }
+
 function getById(bugId) {
-    return storageService.get(STORAGE_KEY, bugId)
+    const bug = bugs.find(bug => bug._id === bugId)
+    if (!bug) return Promise.reject('Cannot find bug - ' + bugId)
+    return Promise.resolve(bug)
 }
 
 function remove(bugId) {
-    return storageService.remove(STORAGE_KEY, bugId)
+    const bugIdx = bugs.findIndex(bug => bug._id === bugId)
+    if (bugIdx < 0) return Promise.reject('Cannot find bug - ' + bugId)
+    bugs.splice(bugIdx, 1)
+    return _saveBugsToFile().then(() => `bug (${bugId}) removed!`)
 }
 
-function save(bug) {
-    if (bug._id) {
-        return storageService.put(STORAGE_KEY, bug)
+
+function save(bugToSave) {
+    if (bugToSave._id) {
+        const bugIdx = bugs.findIndex(bug => bug._id === bugToSave._id)
+        bugs[bugIdx] = bugToSave
     } else {
-        return storageService.post(STORAGE_KEY, bug)
+        bugToSave._id = utilService.makeId()
+        bugs.unshift(bugToSave)
     }
+
+    return _saveBugsToFile().then(() => bugToSave)
 }
 
 
-
-
-function _createBugs() {
-    let bugs = utilService.loadFromStorage(STORAGE_KEY)
-    if (!bugs || !bugs.length) {
-        bugs = [
-            {
-                title: "Infinite Loop Detected",
-                severity: 4,
-                _id: "1NF1N1T3"
-            },
-            {
-                title: "Keyboard Not Found",
-                severity: 3,
-                _id: "K3YB0RD"
-            },
-            {
-                title: "404 Coffee Not Found",
-                severity: 2,
-                _id: "C0FF33"
-            },
-            {
-                title: "Unexpected Response",
-                severity: 1,
-                _id: "G0053"
+function _saveBugsToFile() {
+    return new Promise((resolve, reject) => {
+        const data = JSON.stringify(bugs, null, 4)
+        fs.writeFile('data/bug.json', data, (err) => {
+            if (err) {
+                return reject(err)
             }
-        ]
-        utilService.saveToStorage(STORAGE_KEY, bugs)
-    }
-
-
-
+            resolve()
+        })
+    })
 }
