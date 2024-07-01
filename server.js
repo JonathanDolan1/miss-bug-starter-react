@@ -6,12 +6,13 @@ import { loggerService } from './services/logger.service.js'
 
 const app = express()
 
+app.use(cookieParser())
 app.use(express.static('public'))
 
 // app.get('/', (req, res) => res.send('Hello there'))
 
 app.get('/api/bug', (req, res) => {
-        
+
     // const filterBy = {
     //     txt: req.query.txt,
     //     minSpeed: +req.query.minSpeed
@@ -44,13 +45,22 @@ app.get('/api/bug/save', (req, res) => {
 })
 
 app.get('/api/bug/:bugId/remove', (req, res) => {
-    const { bugId } =req.params
+    const { bugId } = req.params
     bugService.remove(bugId)
-        .then(()=>`Bug ${bugId} removed`)
+        .then(() => `Bug ${bugId} removed`)
+        .catch((err) => {
+            loggerService.error('Cannot remove bug', err)
+            res.status(500).send('Cannot remove bug', err)
+        })
 })
 
 app.get('/api/bug/:bugId', (req, res) => {
+    let visitedBugsIds = []
+    if (req.cookies.visitedBugsIds) visitedBugsIds = JSON.parse(req.cookies.visitedBugsIds)
     const { bugId } = req.params
+    if (!visitedBugsIds.includes(bugId)) visitedBugsIds.push(bugId)
+    if (visitedBugsIds.length > 3) return res.status(401).send('Wait for a bit')
+    res.cookie('visitedBugsIds', JSON.stringify(visitedBugsIds), { maxAge: 7 * 1000 })
     bugService.getById(bugId)
         .then(bug => res.send(bug))
         .catch((err) => {
