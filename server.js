@@ -6,11 +6,12 @@ import { loggerService } from './services/logger.service.js'
 
 const app = express()
 
+app.use(express.static('public'))
 
-app.get('/', (req, res) => res.send('Hello there'))
+// app.get('/', (req, res) => res.send('Hello there'))
 
 app.get('/api/bug', (req, res) => {
-
+        
     // const filterBy = {
     //     txt: req.query.txt,
     //     minSpeed: +req.query.minSpeed

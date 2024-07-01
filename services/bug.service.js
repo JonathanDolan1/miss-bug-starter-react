@@ -44,6 +44,7 @@ function save(bugToSave) {
         bugs[bugIdx] = bugToSave
     } else {
         bugToSave._id = utilService.makeId()
+        bugToSave.createdAt= Date.now()
         bugs.unshift(bugToSave)
     }
 
